@@ -1,5 +1,4 @@
 import mkm_api_manager
-from util import pretty
 import sys
 
 
