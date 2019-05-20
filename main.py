@@ -4,4 +4,4 @@ import sys
 
 user = sys.argv[1]
 
-mkm_api_manager.get_deals(user, "EX", 3, 15, ["English", "Italian", "Japanese", "Korean", "Russian"])
+mkm_api_manager.get_deals(user)

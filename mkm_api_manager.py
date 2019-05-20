@@ -5,6 +5,8 @@ from util import response_code_valid
 
 mkm = Mkm(_API_MAP["2.0"]["api"], _API_MAP["2.0"]["api_root"])
 
+standard_languages = ("English", "Italian", "Japanese", "Korean", "Russian", "S-Chinese")
+
 condition_to_num = {
     "MT": 6,
     "NM": 5,
@@ -49,7 +51,7 @@ def get_user_info(user):
     return mkm.market_place.user(user=user)
 
 
-def filter_deals(articles, condition_min, min_price, max_price, languages):
+def filter_deals(articles, condition_min, threshold, min_price, max_price, languages):
     deals = {}
 
     articles_worth = list(filter(
@@ -69,11 +71,11 @@ def filter_deals(articles, condition_min, min_price, max_price, languages):
         price_table = product_info["priceGuide"]
 
         if "isFoil" in article and article["isFoil"] is True:
-            if is_foil_price_deal(article["price"], price_table):
+            if is_foil_price_deal(article["price"], price_table, threshold):
                 print("(FOIL)", product_info["enName"], article["price"], "LOWFOIL:", price_table["LOWFOIL"])
                 deals[product_info["enName"]] = article["price"]
 
-        elif is_price_deal(article["price"], price_table):
+        elif is_price_deal(article["price"], price_table, threshold):
                 print(product_info["enName"], article["price"], "LOWEX:", price_table["LOWEX"])
                 deals[product_info["enName"]] = article["price"]
 
@@ -84,14 +86,14 @@ def get_article_price_table(article_id):
         return response.json()["product"]
 
 
-def is_price_deal(price, price_table):
-    return True if price < (price_table["LOWEX"] + price_table["LOWEX"]*0.15) else False
+def is_price_deal(price, price_table, threshold):
+    return True if price < (price_table["LOWEX"] + price_table["LOWEX"]*threshold) else False
 
 
-def is_foil_price_deal(price, price_table):
-    return True if price < (price_table["LOWFOIL"] + price_table["LOWFOIL"]*0.15) else False
+def is_foil_price_deal(price, price_table, threshold):
+    return True if price < (price_table["LOWFOIL"] + price_table["LOWFOIL"]*threshold) else False
 
 
-def get_deals(user, condition_min, min_price, max_price, languages):
+def get_deals(user, condition_min="EX", threshold=0.15, min_price=3, max_price=11, languages=standard_languages):
     articles = get_products_from_user(user)
-    return filter_deals(articles, condition_min, min_price, max_price, languages)
+    return filter_deals(articles, condition_min, threshold, min_price, max_price, languages)
