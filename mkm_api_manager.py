@@ -21,8 +21,7 @@ def get_products_from_user_in_range(user, min_limit, max_limit):
         user=user,
         params={
             "start": min_limit,
-            "maxResults": max_limit,
-            "article_condition": "EX",
+            "maxResults": max_limit
         }
     )
 
@@ -50,24 +49,30 @@ def get_user_info(user):
     return mkm.market_place.user(user=user)
 
 
-def filter_deals(articles, condition_min, min_price, max_price):
+def filter_deals(articles, condition_min, min_price, max_price, languages):
     deals = {}
 
     articles_worth = list(filter(
         lambda article_listed:
             "condition" in article_listed and
             condition_to_num[article_listed["condition"]] >= condition_to_num[condition_min] and
-            min_price <= article_listed["price"] < max_price,
+            min_price <= article_listed["price"] < max_price and
+            "language" in article_listed and
+            article_listed["language"]["languageName"] in languages,
         articles)
     )
+
+    print(len(articles), len(articles_worth))
 
     for article in articles_worth:
         product_info = get_article_price_table(article["idProduct"])
         price_table = product_info["priceGuide"]
+
         if "isFoil" in article and article["isFoil"] is True:
             if is_foil_price_deal(article["price"], price_table):
-                print("(FOIL)", product_info["enName"], article["price"], "LOWFOIL:", price_table["LOWEX"])
+                print("(FOIL)", product_info["enName"], article["price"], "LOWFOIL:", price_table["LOWFOIL"])
                 deals[product_info["enName"]] = article["price"]
+
         elif is_price_deal(article["price"], price_table):
                 print(product_info["enName"], article["price"], "LOWEX:", price_table["LOWEX"])
                 deals[product_info["enName"]] = article["price"]
@@ -87,6 +92,6 @@ def is_foil_price_deal(price, price_table):
     return True if price < (price_table["LOWFOIL"] + price_table["LOWFOIL"]*0.15) else False
 
 
-def get_deals(user, condition_min, min_price, max_price):
+def get_deals(user, condition_min, min_price, max_price, languages):
     articles = get_products_from_user(user)
-    return filter_deals(articles, condition_min, min_price, max_price)
+    return filter_deals(articles, condition_min, min_price, max_price, languages)
