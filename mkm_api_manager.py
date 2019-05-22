@@ -1,6 +1,6 @@
 from mkmsdk.mkm import Mkm
 from mkmsdk.api_map import _API_MAP
-from util import response_code_valid
+from util import response_code_valid, pretty
 
 
 mkm = Mkm(_API_MAP["2.0"]["api"], _API_MAP["2.0"]["api_root"])
@@ -51,6 +51,7 @@ def get_user_info(user):
     return mkm.market_place.user(user=user)
 
 
+# Retrieve filtered articles based upon passed criteria
 def filter_deals(articles, condition_min, threshold, min_price, max_price, languages):
     deals = {}
 
@@ -64,23 +65,34 @@ def filter_deals(articles, condition_min, threshold, min_price, max_price, langu
         articles)
     )
 
-    print(len(articles), len(articles_worth))
+    print("Total articles: ", len(articles), " | Articles filtered: ", len(articles_worth))
 
     for article in articles_worth:
-        product_info = get_article_price_table(article["idProduct"])
-        price_table = product_info["priceGuide"]
+        product_info = get_article_info(article["idProduct"])
 
         if "isFoil" in article and article["isFoil"] is True:
-            if is_foil_price_deal(article["price"], price_table, threshold):
-                print("(FOIL)", product_info["enName"], article["price"], "LOWFOIL:", price_table["LOWFOIL"])
-                deals[product_info["enName"]] = article["price"]
+            if is_foil_price_deal(article["price"], product_info["priceGuide"], threshold):
 
-        elif is_price_deal(article["price"], price_table, threshold):
-                print(product_info["enName"], article["price"], "LOWEX:", price_table["LOWEX"])
-                deals[product_info["enName"]] = article["price"]
+                print("{name}[{edition}](FOIL): {price} | LOWFOIL: {min_price}".format(
+                    name=product_info["enName"],
+                    edition=product_info["expansion"]["enName"],
+                    price=article["price"],
+                    min_price=product_info["priceGuide"]["LOWFOIL"]))
+
+                deals[product_info["enName"]] = (article["price"], product_info["image"])
+
+        elif is_price_deal(article["price"], product_info["priceGuide"], threshold):
+
+                print("{name}[{edition}]: {price} | LOWEX: {min_price}".format(
+                    name=product_info["enName"],
+                    edition=product_info["expansion"]["enName"],
+                    price=article["price"],
+                    min_price=product_info["priceGuide"]["LOWEX"]))
+
+                deals[product_info["enName"]] = (article["price"], product_info["image"])
 
 
-def get_article_price_table(article_id):
+def get_article_info(article_id):
     response = mkm.market_place.product(product=article_id)
     if response_code_valid(response.status_code):
         return response.json()["product"]
@@ -97,3 +109,14 @@ def is_foil_price_deal(price, price_table, threshold):
 def get_deals(user, condition_min="EX", threshold=0.15, min_price=3, max_price=11, languages=standard_languages):
     articles = get_products_from_user(user)
     return filter_deals(articles, condition_min, threshold, min_price, max_price, languages)
+
+
+def get_wantlist_ids():
+    return list(wantlist["idWantslist"] for wantlist in mkm.wants_list.get_all_wants_list().json()["wantslist"])
+
+
+# Get each article in authenticated user wantlists in map form.
+# Key -> idProduct/idMetaproduct | Value -> product/metaproduct
+def get_all_articles_in_wantlists_as_map():
+    for wantlist_id in get_wantlist_ids():
+        wantlist_items = mkm.wants_list.get_wants_list(wants=wantlist_id).json()["wantslist"]["item"]
