@@ -68,17 +68,20 @@ def filter_deals(articles, condition_min, threshold, min_price, max_price, langu
 
     for article in articles_worth:
         product_info = get_article_price_table(article["idProduct"])
+
         price_table = product_info["priceGuide"]
+        #print(price_table)
 
         if "isFoil" in article and article["isFoil"] is True:
             if is_foil_price_deal(article["price"], price_table, threshold):
-                print("(FOIL)", product_info["enName"], article["price"], "LOWFOIL:", price_table["LOWFOIL"])
-                deals[product_info["enName"]] = article["price"]
-
+                #print("(FOIL)", product_info["enName"], article["price"], "LOWFOIL:", price_table["LOWFOIL"])
+                deals["(FOIL) " + product_info["enName"]] = {'price':article["price"], 'image':product_info["image"], 'low':price_table["LOWFOIL"], 'trend': price_table["TRENDFOIL"]}
+                
         elif is_price_deal(article["price"], price_table, threshold):
-                print(product_info["enName"], article["price"], "LOWEX:", price_table["LOWEX"])
-                deals[product_info["enName"]] = article["price"]
-
+                #print(product_info["enName"], article["price"], "LOWEX:", price_table["LOWEX"])
+                deals[product_info["enName"]] = {'price':article["price"], 'image':product_info["image"], 'low':price_table["LOW"], 'trend': price_table["TREND"]}
+        
+    return deals
 
 def get_article_price_table(article_id):
     response = mkm.market_place.product(product=article_id)
