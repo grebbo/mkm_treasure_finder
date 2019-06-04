@@ -3,6 +3,8 @@ from mkmsdk.api_map import _API_MAP
 from util import response_code_valid, pretty
 
 
+mkm_url = "https://www.cardmarket.com/"
+
 mkm = Mkm(_API_MAP["2.0"]["api"], _API_MAP["2.0"]["api_root"])
 
 standard_languages = ("English", "Italian", "Japanese", "Korean", "Russian", "S-Chinese")
@@ -53,7 +55,7 @@ def get_user_info(user):
 
 # Retrieve filtered articles based upon passed criteria
 def filter_deals(articles, condition_min, threshold, min_price, max_price, languages):
-    deals = {}
+    deals = []
 
     articles_worth = list(filter(
         lambda article_listed:
@@ -65,31 +67,48 @@ def filter_deals(articles, condition_min, threshold, min_price, max_price, langu
         articles)
     )
 
-    print("Total articles: ", len(articles), " | Articles filtered: ", len(articles_worth))
+    print("From " + str(len(articles)) + " to " + str(len(articles_worth)))
 
     for article in articles_worth:
         product_info = get_article_info(article["idProduct"])
 
         if "isFoil" in article and article["isFoil"] is True:
             if is_foil_price_deal(article["price"], product_info["priceGuide"], threshold):
-
                 print("{name}[{edition}](FOIL): {price} | LOWFOIL: {min_price}".format(
                     name=product_info["enName"],
                     edition=product_info["expansion"]["enName"],
                     price=article["price"],
                     min_price=product_info["priceGuide"]["LOWFOIL"]))
 
-                deals[product_info["enName"]] = (article["price"], product_info["image"])
+                deal_to_add = {
+                    "name": product_info["enName"],
+                    "image": "{mkm_url}{image_url}".format(mkm_url=mkm_url, image_url=product_info["image"]),
+                    "price": article["price"],
+                    "is_foil": True,
+                    "low": product_info["priceGuide"]["LOWFOIL"]
+                }
+
+                deals.append(deal_to_add)
 
         elif is_price_deal(article["price"], product_info["priceGuide"], threshold):
 
                 print("{name}[{edition}]: {price} | LOWEX: {min_price}".format(
-                    name=product_info["enName"],
-                    edition=product_info["expansion"]["enName"],
-                    price=article["price"],
-                    min_price=product_info["priceGuide"]["LOWEX"]))
+                     name=product_info["enName"],
+                     edition=product_info["expansion"]["enName"],
+                     price=article["price"],
+                     min_price=product_info["priceGuide"]["LOWEX"]))
 
-                deals[product_info["enName"]] = (article["price"], product_info["image"])
+                deal_to_add = {
+                    "name": product_info["enName"],
+                    "image": "{mkm_url}{image_url}".format(mkm_url=mkm_url, image_url=product_info["image"]),
+                    "price": article["price"],
+                    "is_foil": False,
+                    "low": product_info["priceGuide"]["LOWEX"]
+                }
+
+                deals.append(deal_to_add)
+
+    return deals
 
 
 def get_article_info(article_id):
